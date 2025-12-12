@@ -10,4 +10,4 @@ export const updateUserDTO = z.object({
 	dob: z.string().optional()
 })
 
-export type UpdateUserDTO = z.infer
+export type UpdateUserDTO = z.infer<typeof updateUserDTO>
