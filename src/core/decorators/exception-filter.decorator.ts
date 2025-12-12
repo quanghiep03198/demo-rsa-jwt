@@ -9,9 +9,9 @@ import { AllExceptionFilter } from '../filters/exception.filter'
 export function UseExceptionFilter(): MethodDecorator {
 	return function (_target: Object, _property: string | symbol, descriptor: TypedPropertyDescriptor<any>) {
 		const originalMethod = descriptor.value
-		descriptor.value = function (...args: Parameters<RequestHandler>) {
+		descriptor.value = async function (...args: Parameters<RequestHandler>) {
 			try {
-				originalMethod.apply(this, args)
+				await originalMethod.apply(this, args)
 			} catch (error) {
 				return new AllExceptionFilter().catch(error as Error, args)
 			}

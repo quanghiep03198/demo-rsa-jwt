@@ -7,7 +7,7 @@ import { HttpStatusCode } from '../constants'
  * @param validator
  * @returns {MethodDecorator}
  */
-export function UseZodValidationPipe<T extends z.ZodPipe<any>>(validator: T): MethodDecorator {
+export function UseZodValidationPipe<T extends z.ZodPipe<z.ZodTypeAny> | z.ZodTypeAny>(validator: T): MethodDecorator {
 	return function (_target: Object, _property: string | symbol, descriptor: TypedPropertyDescriptor<any>) {
 		const originalMethod = descriptor.value
 

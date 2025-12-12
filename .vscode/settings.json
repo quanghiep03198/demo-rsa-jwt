@@ -4,15 +4,15 @@
 		"deprecated": true
 	},
 	"files.readonlyInclude": {
-		"keys/": true,
+		// "keys/": true,
 		"pnpm-lock.yaml": true
 	},
 	"files.watcherExclude": {
-		"keys/": true,
+		// "keys/": true,
 		"pnpm-lock.yaml": true
 	},
 	"search.exclude": {
-		"keys/*": true,
+		// "keys/*": true,
 		"pnpm-lock.yaml": true
 	},
 	"editor.defaultFormatter": "esbenp.prettier-vscode",

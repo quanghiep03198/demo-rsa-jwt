@@ -8,7 +8,8 @@ export interface IUser {
 	email: string
 	password: string
 	role: UserRole
-	dob?: string
+	publicKey: string
+	verifyPassword(password: string): boolean
 	createdAt?: Date
 	updatedAt?: Date
 }

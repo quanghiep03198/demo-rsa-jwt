@@ -1,5 +1,6 @@
 import express, { Application } from 'express'
 import { UserController } from './user/user.controller'
+import { AuthController } from './auth/auth.controller'
 
 type RouteModuleOptions = {
 	prefix: string
@@ -11,6 +12,7 @@ export class RouteModule {
 		try {
 			const router = express.Router()
 			router.use(new UserController().router)
+			router.use(new AuthController().router)
 			app.use(prefix, router)
 		} catch (error) {
 			console.error('[RouteModule]', error instanceof Error ? error.message : error)

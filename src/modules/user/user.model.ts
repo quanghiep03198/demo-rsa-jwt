@@ -1,5 +1,7 @@
 import mongoose from 'mongoose'
 import { IUser, UserRole } from './user.interface'
+import { compareSync, genSaltSync, hashSync } from 'bcrypt'
+import 'dotenv/config'
 
 const UserSchema = new mongoose.Schema<IUser>(
 	{
@@ -19,6 +21,10 @@ const UserSchema = new mongoose.Schema<IUser>(
 			required: true,
 			maxLength: 100
 		},
+		publicKey: {
+			type: String,
+			required: false
+		},
 		role: {
 			type: String,
 			enum: Object.values(UserRole),
@@ -30,5 +36,10 @@ const UserSchema = new mongoose.Schema<IUser>(
 		collection: 'users'
 	}
 )
+
+UserSchema.methods.verifyPassword = function (password: string) {
+	if (!password) return false
+	return compareSync(password, this.password)
+}
 
 export const UserModel = mongoose.model('User', UserSchema)
