@@ -19,7 +19,7 @@ export class AuthService {
 				role: user.role
 			},
 			userPrivateKey,
-			'1h'
+			'5s'
 		)
 
 		return {

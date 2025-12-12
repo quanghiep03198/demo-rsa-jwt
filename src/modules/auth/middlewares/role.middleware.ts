@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import createHttpError from 'http-errors'
 import { UserRole } from '../../user/user.interface'
+import { HttpStatusCode } from '../../../core/constants'
 
 /**
  * Middleware to check role of authenticated user
@@ -30,7 +31,9 @@ export const roleBaseMiddleware = (allowedRoles: UserRole[]) => {
 			// If all checks pass, proceed to the next middleware/handler
 			next()
 		} catch (error) {
-			next(error)
+			return res
+				.status(HttpStatusCode.UNAUTHORIZED)
+				.json({ message: 'Invalid access token', statusCode: HttpStatusCode.UNAUTHORIZED })
 		}
 	}
 }

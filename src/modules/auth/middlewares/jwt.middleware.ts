@@ -4,6 +4,7 @@ import { UserModel } from '../../user/user.model'
 import { IUser } from '../../user/user.interface'
 import mongoose from 'mongoose'
 import createHttpError from 'http-errors'
+import { HttpStatusCode } from '../../../core/constants'
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
 	try {
@@ -24,6 +25,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
 		next()
 	} catch (error) {
-		throw createHttpError.Unauthorized('Invalid access token')
+		return res
+			.status(HttpStatusCode.UNAUTHORIZED)
+			.json({ message: 'Invalid access token', statusCode: HttpStatusCode.UNAUTHORIZED })
 	}
 }
