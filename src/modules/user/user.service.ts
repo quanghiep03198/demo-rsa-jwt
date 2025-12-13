@@ -40,8 +40,16 @@ export class UserService {
 		if (!user) throw createHttpError.NotFound('User not found')
 		const updatedUser = Object.assign(user, data)
 		if (data.password) updatedUser.password = hashSync(data.password, +process.env.SALT_ROUND!)
-		await updatedUser.save()
+		const updateResult = await updatedUser.save()
 		if (!user) throw createHttpError.NotFound('User not found')
+		return {
+			_id: updateResult._id,
+			email: updateResult.email,
+			displayName: updateResult.displayName,
+			role: updateResult.role,
+			createdAt: updateResult.createdAt,
+			updatedAt: updateResult.updatedAt
+		}
 	}
 
 	public async delete(id: mongoose.Types.ObjectId) {
