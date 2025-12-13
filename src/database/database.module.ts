@@ -16,7 +16,7 @@ export class DatabaseModule {
 				connectTimeoutMS: 5000,
 				dbName
 			})
-			console.log('MongoDB connected successfully.')
+			console.info(`[${DatabaseModule.name}] :>>> `, 'MongoDB connected successfully.')
 		} catch (error) {
 			console.error('Error from database module:>>>', error instanceof Error ? error.message : error)
 		}
