@@ -1,3 +1,4 @@
+import 'reflect-metadata'
 import { RequestHandler } from 'express'
 import { AllExceptionFilter } from '../filters/exception.filter'
 
