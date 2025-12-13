@@ -3,15 +3,20 @@ import createHttpError from 'http-errors'
 import mongoose from 'mongoose'
 import { Controller, Delete, Get, Patch, Post } from '../../core/decorators/controller.decorator'
 import { UseExceptionFilter } from '../../core/decorators/exception-filter.decorator'
-
 import { HttpStatusCode } from '../../core/constants'
 import { IBaseController } from '../../core/interfaces'
 import { UserService } from './user.service'
 import { createUserDTO } from './dto/create-user.dto'
 import { UseZodValidationPipe } from '../../core/decorators/zod-validation.decorator'
 import { UseMiddleware } from '../../core/decorators/use-middleware.decorator'
-import { authMiddleware } from '../auth/middlewares/jwt.middleware'
-import { adminOnly } from '../auth/middlewares/role.middleware'
+import { adminOnly, RoleBaseMiddleware } from '../auth/middlewares/role.middleware'
+import { Inject } from 'typedi'
+import { JwtMiddleware } from '../auth/middlewares/jwt.middleware'
+import { UserRole } from './user.interface'
+import { isValidObjectId } from 'mongoose'
+import { Types } from 'mongoose'
+import { UpdateUserDTO, updateUserDTO } from './dto/update-user.dto'
+import { BaseAbstractController } from '../_base/base.abstract.controller'
 
 /**
  * Should be implemented {@link IBaseController}
@@ -20,46 +25,13 @@ import { adminOnly } from '../auth/middlewares/role.middleware'
  *
  */
 
-@Controller
-export class UserController implements IBaseController {
-	private readonly __router__: Router
-	private readonly userService: UserService = new UserService()
-
-	constructor() {
-		this.__router__ = this.constructor.prototype.router
-
-		/**
-		 * @injection
-		 */
-		this.userService = new UserService()
+@Controller('user')
+export class UserController extends BaseAbstractController {
+	constructor(private readonly userService: UserService) {
+		super()
 	}
 
-	public get router(): Router {
-		return this.__router__
-	}
-
-	@Get('/users')
-	async getAllUsers(_req: Request, res: Response) {
-		const users = await this.userService.getAll()
-		if (users.length === 0) throw createHttpError.NotFound('No user is available')
-		res.status(HttpStatusCode.OK).json({
-			message: HttpStatusCode.OK,
-			data: users
-		})
-	}
-
-	@Get('/users/:id')
-	async getUserById(req: Request, res: Response) {
-		if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError.BadRequest('Invalid id format')
-		const id = new mongoose.Types.ObjectId(req.params.id)
-		const user = await this.userService.getById(id)
-		res.status(HttpStatusCode.OK).json({
-			message: HttpStatusCode.OK,
-			data: user
-		})
-	}
-
-	@Post('/register')
+	@Post('register')
 	@UseZodValidationPipe(createUserDTO)
 	@UseExceptionFilter()
 	async register(req: Request, res: Response) {
@@ -70,22 +42,35 @@ export class UserController implements IBaseController {
 		})
 	}
 
-	@Patch('/users/:id')
-	@UseMiddleware(authMiddleware)
+	@Get()
+	@UseMiddleware(JwtMiddleware, RoleBaseMiddleware.requireRoles(UserRole.ADMIN))
 	@UseExceptionFilter()
-	async updateUser(req: Request, res: Response) {
-		if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError.BadRequest('Invalid id format')
+	async getAllUsers(req: Request, res: Response) {
+		const users = await this.userService.getAll(req.user.id)
+		if (users.length === 0) throw createHttpError.NotFound('No user is available')
+		return res.status(HttpStatusCode.OK).json({
+			message: HttpStatusCode.OK,
+			data: users
+		})
+	}
 
-		const id = new mongoose.Types.ObjectId(req.params.id)
+	@Patch('profile')
+	@UseZodValidationPipe(updateUserDTO)
+	@UseMiddleware(JwtMiddleware)
+	@UseExceptionFilter()
+	async updateProfile(req: Request<void, any, UpdateUserDTO, {}>, res: Response) {
+		if (!isValidObjectId(req.user?.id)) throw createHttpError.BadRequest('Invalid id format')
+		const id = new Types.ObjectId(req.user.id)
 		const user = await this.userService.update(id, req.body)
 		return res.status(HttpStatusCode.CREATED).json({
-			message: HttpStatusCode.CREATED,
+			statusCode: HttpStatusCode.CREATED,
+			message: 'User profile updated successfully',
 			data: user
 		})
 	}
 
-	@Delete('/users/:id')
-	@UseMiddleware(authMiddleware, adminOnly)
+	@Delete('delete/:id')
+	@UseMiddleware(JwtMiddleware, RoleBaseMiddleware.requireRoles(UserRole.ADMIN))
 	@UseExceptionFilter()
 	async deleteUser(req: Request, res: Response) {
 		if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError.BadRequest('Invalid id format')

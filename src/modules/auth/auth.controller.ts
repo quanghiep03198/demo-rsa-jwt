@@ -1,4 +1,4 @@
-import { Request, Response, Router } from 'express'
+import { Request, Response } from 'express'
 import { Controller, Get, Post } from '../../core/decorators/controller.decorator'
 import { UseExceptionFilter } from '../../core/decorators/exception-filter.decorator'
 import { UseZodValidationPipe } from '../../core/decorators/zod-validation.decorator'
@@ -6,39 +6,44 @@ import { LoginDTO, loginDTO } from './dto/login.dto'
 import { AuthService } from './auth.service'
 import { HttpStatusCode } from '../../core/constants'
 import { IUser } from '../user/user.interface'
-import { IBaseController } from '../../core/interfaces'
 import { UseMiddleware } from '../../core/decorators/use-middleware.decorator'
-import { authMiddleware } from './middlewares/jwt.middleware'
+import { JwtMiddleware } from './middlewares/jwt.middleware'
+import { Inject } from 'typedi'
+import { BaseAbstractController } from '../_base/base.abstract.controller'
 
-@Controller
-export class AuthController implements IBaseController {
-	private readonly __router__: Router
-	private readonly authService: AuthService
-
-	constructor() {
-		this.__router__ = this.constructor.prototype.router
-
-		/**
-		 * @injection
-		 */
-		this.authService = new AuthService()
+@Controller('auth')
+export class AuthController extends BaseAbstractController {
+	constructor(@Inject() public readonly authService: AuthService) {
+		super()
 	}
 
-	public get router(): Router {
-		return this.__router__
-	}
-
-	@Post('/login')
+	@Post('login')
 	@UseZodValidationPipe(loginDTO)
 	@UseExceptionFilter()
 	async login(req: Request<any, { user: Partial<IUser> }, LoginDTO>, res: Response) {
 		const result = await this.authService.login(req.body)
-		return res.status(HttpStatusCode.OK).json(result)
+		return res.status(HttpStatusCode.OK).json({
+			statusCode: HttpStatusCode.OK,
+			message: 'Login successful',
+			data: result
+		})
 	}
 
-	@Get('/profile')
+	@Post('logout')
+	@UseMiddleware(JwtMiddleware)
 	@UseExceptionFilter()
-	@UseMiddleware(authMiddleware)
+	async logout(req: Request<any, { user: Partial<IUser> }, void>, res: Response) {
+		const token = req.headers['authorization'] as string
+		const userId = req.user.id
+		const result = await this.authService.logout(userId, token)
+		return res
+			.status(HttpStatusCode.OK)
+			.json({ statusCode: HttpStatusCode.OK, message: 'Successfully logged out', data: result })
+	}
+
+	@Get('profile')
+	@UseExceptionFilter()
+	@UseMiddleware(JwtMiddleware)
 	async getProfile(req: Request<any, { user: Partial<IUser> }, LoginDTO>, res: Response) {
 		const result = await this.authService.getProfile(req['user']?.id)
 		return res.status(HttpStatusCode.OK).json(result)

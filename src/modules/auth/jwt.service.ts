@@ -1,11 +1,20 @@
+import 'reflect-metadata'
+
 import { generateKeyPairSync } from 'crypto'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 import createHttpError from 'http-errors'
+import { Service } from 'typedi'
 
+@Service()
 export class JwtService {
-	static createKeyPairs(userId: string): { publicKey: string; privateKey: string } {
+	/**
+	 * Create RSA key pairs and save the private key to a file
+	 * @param userId
+	 * @returns
+	 */
+	public createKeyPairs(userId: string): { publicKey: string; privateKey: string } {
 		const { publicKey, privateKey } = generateKeyPairSync('rsa', {
 			modulusLength: 2048,
 			staticKeyEncoding: {
@@ -18,24 +27,25 @@ export class JwtService {
 			}
 		})
 
-		// Tạo thư mục keys nếu chưa tồn tại
+		// * Create keys directory if not exists
 		const keysDir = join(process.cwd(), 'keys')
 		if (!existsSync(keysDir)) {
 			mkdirSync(keysDir, { recursive: true })
 		}
 
-		// Lưu private key với tên file là userId
+		// * Save private key to a file
 		const privateKeyPath = join(keysDir, `${userId}.pem`)
 		writeFileSync(privateKeyPath, privateKey, 'utf-8')
 		console.log('publicKey', publicKey.export({ type: 'spki', format: 'pem' }))
-		// Trả về publicKey và privateKey dưới dạng chuỗi PEM
+
+		// * Return public and private keys in PEM format
 		return {
 			publicKey: publicKey.export({ type: 'spki', format: 'pem' }),
 			privateKey
 		}
 	}
 
-	static sign<T extends Parameters<(typeof jwt)['sign']>[0]>(
+	public sign<T extends Parameters<(typeof jwt)['sign']>[0]>(
 		payload: T,
 		rsaPrivateKey: string,
 		expiresIn?: Parameters<(typeof jwt)['sign']>[2]['expiresIn']
@@ -43,7 +53,7 @@ export class JwtService {
 		return jwt.sign(payload, rsaPrivateKey, { algorithm: 'RS256', expiresIn: expiresIn || '5s' })
 	}
 
-	static verify<T>(token: string, rsaPublicKey: string) {
+	public verify<T>(token: string, rsaPublicKey: string) {
 		try {
 			return jwt.verify(token, rsaPublicKey, { algorithms: ['RS256'] }) as T
 		} catch (error) {
