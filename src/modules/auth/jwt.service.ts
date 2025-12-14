@@ -7,6 +7,8 @@ import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 import createHttpError from 'http-errors'
 import { Service } from 'typedi'
 
+type TokenExpiration = Parameters<(typeof jwt)['sign']>[2]['expiresIn']
+
 @Service()
 export class JwtService {
 	/**
@@ -15,6 +17,7 @@ export class JwtService {
 	 * @returns
 	 */
 	public createKeyPairs(userId: string): { publicKey: string; privateKey: string } {
+		const start = performance.now()
 		const { publicKey, privateKey } = generateKeyPairSync('rsa', {
 			modulusLength: 2048,
 			staticKeyEncoding: {
@@ -26,6 +29,9 @@ export class JwtService {
 				format: 'pem'
 			}
 		})
+		const end = performance.now()
+		const duration = end - start
+		console.log(`Key pair generated in ${duration} milliseconds`)
 
 		// * Create keys directory if not exists
 		const keysDir = join(process.cwd(), 'keys')
@@ -48,14 +54,24 @@ export class JwtService {
 	public sign<T extends Parameters<(typeof jwt)['sign']>[0]>(
 		payload: T,
 		rsaPrivateKey: string,
-		expiresIn?: Parameters<(typeof jwt)['sign']>[2]['expiresIn']
+		expiresIn?: TokenExpiration
 	): string {
-		return jwt.sign(payload, rsaPrivateKey, { algorithm: 'RS256', expiresIn: expiresIn || '5s' })
+		const start = performance.now()
+		const token = jwt.sign(payload, rsaPrivateKey, { algorithm: 'RS256', expiresIn: expiresIn || '5s' })
+		const end = performance.now()
+		const duration = end - start
+		console.log(`Token signed in ${duration} milliseconds`)
+		return token
 	}
 
 	public verify<T>(token: string, rsaPublicKey: string) {
 		try {
-			return jwt.verify(token, rsaPublicKey, { algorithms: ['RS256'] }) as T
+			const start = performance.now()
+			const result = jwt.verify(token, rsaPublicKey, { algorithms: ['RS256'] }) as T
+			const end = performance.now()
+			const duration = end - start
+			console.log(`Token verified in ${duration} milliseconds`)
+			return result
 		} catch (error) {
 			throw createHttpError.Forbidden(error instanceof JsonWebTokenError ? error.message : 'Invalid token')
 		}
